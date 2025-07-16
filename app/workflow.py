@@ -16,17 +16,24 @@ from langchain.document_loaders import TextLoader  # 支持本地文本加载
 from langchain_community.vectorstores import Chroma
 
 
+from app.modals.llm import get_llm
+
+
 class RouteQuery(BaseModel):
     datasource: Literal["vectorstore", "web_search"] = Field(...)
+
 
 class GradeDocuments(BaseModel):
     binary_score: str = Field(...)
 
+
 class GradeHallucinations(BaseModel):
     binary_score: str = Field(...)
 
+
 class GradeAnswer(BaseModel):
     binary_score: str = Field(...)
+
 
 class GraphState(TypedDict):
     question: str
@@ -34,25 +41,9 @@ class GraphState(TypedDict):
     documents: List[Document]
 
 
-
-
-
-def get_llm(
-    provider: str = "openai",
-    model_name: Optional[str] = None,
-    llm_kwargs: Optional[Dict] = None
-):
-    llm_kwargs = llm_kwargs or {}
-    if provider == "openai":
-        return ChatOpenAI(model_name=model_name or "gpt-4o-mini", temperature=0, **llm_kwargs)
-    if provider == "ollama":
-        return Ollama(model=model_name or "llama2", **llm_kwargs)
-    if provider == "kimi":
-        
-    raise ValueError(f"Unsupported provider: {provider}")
-
 def format_docs(docs: List[Document]) -> str:
     return "\n\n".join(doc.page_content for doc in docs)
+
 
 class DocumentVectorizer:
     def __init__(
@@ -90,18 +81,15 @@ class DocumentVectorizer:
         self._retriever = store.as_retriever()
         return self._retriever
 
+
 class RAGWorkflow:
     def __init__(
         self,
-        llm_provider: str = "openai",
-        llm_model: Optional[str] = None,
-        llm_kwargs: Optional[Dict] = None,
+        llm_provider: str = "basic",
         urls: Optional[List[str]] = None,
         local_paths: Optional[List[str]] = None
     ):
-        self.llm_provider = llm_provider
-        self.llm_model = llm_model
-        self.llm_kwargs = llm_kwargs or {}
+        self.llm = get_llm(llm_provider)
         self.question_router = self._init_router()
         self.web_search_tool = TavilySearchResults(k=3)
         vectorizer = DocumentVectorizer(
@@ -117,8 +105,7 @@ class RAGWorkflow:
         self.app = self._build_workflow()
 
     def _init_router(self):
-        llm = get_llm(self.llm_provider, self.llm_model, self.llm_kwargs)
-        structured = llm.with_structured_output(RouteQuery)
+        structured = self.llm.with_structured_output(RouteQuery)
         prompt = ChatPromptTemplate.from_messages([
             ("system", "Route question to vectorstore or web search."),
             ("human", "{question}")
@@ -126,21 +113,22 @@ class RAGWorkflow:
         return prompt | structured
 
     def _init_retrieval_grader(self):
-        llm = get_llm(self.llm_provider, self.llm_model, self.llm_kwargs)
-        structured = llm.with_structured_output(GradeDocuments)
+
+        structured = self.llm.with_structured_output(GradeDocuments)
         prompt = ChatPromptTemplate.from_messages([
             ("system", "Assess document relevance."),
-            ("human", "Retrieved document: {document}\nUser question: {question}")
+            ("human",
+             "Retrieved document: {document}\nUser question: {question}")
         ])
         return prompt | structured
 
     def _init_rag_chain(self):
-        llm = get_llm(self.llm_provider, self.llm_model, self.llm_kwargs)
-        return hub.pull("rlm/rag-prompt") | llm | StrOutputParser()
+
+        return hub.pull("rlm/rag-prompt") | self.llm | StrOutputParser()
 
     def _init_hallucination_grader(self):
-        llm = get_llm(self.llm_provider, self.llm_model, self.llm_kwargs)
-        structured = llm.with_structured_output(GradeHallucinations)
+
+        structured = self.llm.with_structured_output(GradeHallucinations)
         prompt = ChatPromptTemplate.from_messages([
             ("system", "Grade groundedness."),
             ("human", "Facts: {documents}\nGeneration: {generation}")
@@ -148,8 +136,8 @@ class RAGWorkflow:
         return prompt | structured
 
     def _init_answer_grader(self):
-        llm = get_llm(self.llm_provider, self.llm_model, self.llm_kwargs)
-        structured = llm.with_structured_output(GradeAnswer)
+
+        structured = self.llm.with_structured_output(GradeAnswer)
         prompt = ChatPromptTemplate.from_messages([
             ("system", "Grade answer completeness."),
             ("human", "Question: {question}\nGeneration: {generation}")
@@ -157,11 +145,12 @@ class RAGWorkflow:
         return prompt | structured
 
     def _init_question_rewriter(self):
-        llm = get_llm(self.llm_provider, self.llm_model, self.llm_kwargs)
+
         return ChatPromptTemplate.from_messages([
             ("system", "Rewrite question for vector retrieval."),
-            ("human", "Original question: {question}\nFormulate improved question:")
-        ]) | llm | StrOutputParser()
+            ("human",
+             "Original question: {question}\nFormulate improved question:")
+        ]) | self.llm | StrOutputParser()
 
     def _retrieve(self, state: GraphState) -> GraphState:
         docs = self.retriever.invoke(state["question"])
@@ -171,8 +160,10 @@ class RAGWorkflow:
         qs = state["question"]
         filtered = []
         for doc in state.get("documents", []):
-            score = self.retrieval_grader.invoke({"question": qs, "document": doc.page_content})
-            if score.binary_score == "yes": filtered.append(doc)
+            score = self.retrieval_grader.invoke(
+                {"question": qs, "document": doc.page_content})
+            if score.binary_score == "yes":
+                filtered.append(doc)
         return {**state, "documents": filtered}
 
     def _transform_query(self, state: GraphState) -> GraphState:
@@ -186,13 +177,16 @@ class RAGWorkflow:
 
     def _generate(self, state: GraphState) -> GraphState:
         ctx = format_docs(state.get("documents", []))
-        out = self.rag_chain.invoke({"context": ctx, "question": state["question"]})
+        out = self.rag_chain.invoke(
+            {"context": ctx, "question": state["question"]})
         return {**state, "generation": out}
 
     def _grade_generation(self, state: GraphState) -> str:
-        hall = self.hallucination_grader.invoke({"documents": state.get("documents", []), "generation": state.get("generation", "")})
+        hall = self.hallucination_grader.invoke({"documents": state.get(
+            "documents", []), "generation": state.get("generation", "")})
         if hall.binary_score == "yes":
-            ans = self.answer_grader.invoke({"question": state["question"], "generation": state["generation"]})
+            ans = self.answer_grader.invoke(
+                {"question": state["question"], "generation": state["generation"]})
             return "useful" if ans.binary_score == "yes" else "not useful"
         return "not supported"
 
@@ -205,7 +199,8 @@ class RAGWorkflow:
         wf.add_node("generate", self._generate)
         wf.add_conditional_edges(
             START,
-            lambda s: self.question_router.invoke({"question": s["question"]}).datasource,
+            lambda s: self.question_router.invoke(
+                {"question": s["question"]}).datasource,
             {"web_search": "web_search", "vectorstore": "retrieve"}
         )
         wf.add_edge("web_search", "generate")
@@ -219,13 +214,12 @@ class RAGWorkflow:
         wf.add_conditional_edges(
             "generate",
             self._grade_generation,
-            {"useful": END, "not useful": "transform_query", "not supported": "generate"}
+            {"useful": END, "not useful": "transform_query",
+                "not supported": "generate"}
         )
         return wf.compile()
 
     def run(self, question: str):
-        for output in self.app.stream({"question": question}): pprint(output)
+        for output in self.app.stream({"question": question}):
+            pprint(output)
         print(output.get("generation", ""))
-
-
-

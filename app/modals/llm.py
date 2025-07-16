@@ -1,8 +1,10 @@
 from langchain_openai import ChatOpenAI
 from langchain_deepseek import ChatDeepSeek
-from typing import Optional
+from langchain_litellm import ChatLiteLLM
 
-from src.config import (
+from typing import Optional
+from typing import Literal
+from app.config import (
     REASONING_MODEL,
     REASONING_BASE_URL,
     REASONING_API_KEY,
@@ -13,7 +15,8 @@ from src.config import (
     VL_BASE_URL,
     VL_API_KEY,
 )
-from src.config.agents import LLMType
+
+LLMType = Literal["basic", "reasoning", "vision"]
 
 
 def create_openai_llm(
@@ -64,7 +67,7 @@ def create_deepseek_llm(
 _llm_cache: dict[LLMType, ChatOpenAI | ChatDeepSeek] = {}
 
 
-def get_llm_by_type(llm_type: LLMType) -> ChatOpenAI | ChatDeepSeek:
+def get_llm(llm_type: LLMType) -> ChatOpenAI | ChatDeepSeek:
     """
     Get LLM instance by type. Returns cached instance if available.
     """

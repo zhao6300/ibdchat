@@ -2,8 +2,7 @@ from app.workflow import RAGWorkflow
 
 def main():
     workflow = RAGWorkflow(
-        llm_provider="ollama",
-        llm_model="llama2",
+        llm_provider="basic",
         urls=[
             "https://lilianweng.github.io/posts/2023-06-23-agent/",
             "https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/"

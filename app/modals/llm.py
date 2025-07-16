@@ -100,5 +100,5 @@ def get_llm(llm_type: LLMType) -> ChatOpenAI | ChatDeepSeek:
 
 
 if __name__ == "__main__":
-    basic_llm = get_llm_by_type("basic")
+    basic_llm = get_llm("basic")
     basic_llm.invoke("Hello")

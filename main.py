@@ -1,15 +1,16 @@
 from app.workflow import RAGWorkflow
 
+
 def main():
     workflow = RAGWorkflow(
         llm_provider="basic",
         urls=[
-            "https://lilianweng.github.io/posts/2023-06-23-agent/",
-            "https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/"
+            "https://gitee.com/mindspore/mindspore/blob/master/README.md",
         ],
-        local_paths=["./docs/example.md", "./docs/notes.txt"]
+        local_paths=["./README.md"]
     )
     workflow.run("What are the types of agent memory?")
+
 
 if __name__ == "__main__":
     main()

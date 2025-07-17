@@ -14,9 +14,13 @@ from pydantic import BaseModel, Field
 from langchain_ollama import Ollama
 from langchain.document_loaders import TextLoader  # 支持本地文本加载
 from langchain_community.vectorstores import Chroma
+from modals import *
+import os
 
 
-from app.modals.llm import get_llm
+from app.modals.chat_llm import get_llm
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 
 
 class RouteQuery(BaseModel):
@@ -57,7 +61,12 @@ class DocumentVectorizer:
         self.local_paths = local_paths or []
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
-        self.embedding = OpenAIEmbeddings()
+        model_type = os.getenv("EMBEDDING_MODEL_TYPE")
+        model_name = os.getenv("EMBEDDING_MODEL_NAME")
+        model_key = os.getenv("EMBEDDING_MODEL_API_KEY")
+        modal_base_url = os.getenv("EMBEDDING_MODEL_BASE_URL")
+        self.embedding = EmbeddingModel.get(model_type)(
+            model_name, model_name, modal_base_url)
         self._retriever = None
 
     def build(self):

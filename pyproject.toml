@@ -29,7 +29,7 @@ dependencies = [
   "numpy>=2.2.3",
   "yfinance>=0.2.54",
   "langchain-deepseek>=0.1.2",
-  "langchain-litellm",
+  "langchain-litellm>=0.2.0",
   "PyYAML>=6.0.0",
   "langchain_ollama>=0.3.0",
 ]

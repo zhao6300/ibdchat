@@ -8,17 +8,15 @@ from pprint import pprint
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from pydantic import BaseModel, Field
-from langchain_ollama import Ollama
 from langchain.document_loaders import TextLoader  # 支持本地文本加载
 from langchain_community.vectorstores import Chroma
-from modals import *
+from app.models import *
 import os
 
 
-from app.modals.chat_llm import get_llm
+from app.models.chat_llm import get_llm
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 

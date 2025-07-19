@@ -9,33 +9,29 @@ description = "IBD Chat project"
 readme = "README.md"
 requires-python = ">=3.12"
 
-authors = [
-  {name = "zw", email = "zhao6305@gmail.com"},
-]
-maintainers = [
-  {name = "lilonglong", email = "xx@example.com"}
-]
+authors = [{ name = "zw", email = "zhao6305@gmail.com" }]
+maintainers = [{ name = "lilonglong", email = "xx@example.com" }]
 
 dependencies = [
-    "httpx>=0.28.1",
-    "langchain-community>=0.3.19",
-    "langchain-experimental>=0.3.4",
-    "langchain-openai>=0.3.8",
-    "langgraph>=0.3.5",
-    "readabilipy>=0.3.0",
-    "python-dotenv>=1.0.1",
-    "socksio>=1.0.0",
-    "markdownify>=1.1.0",
-    "browser-use>=0.1.0",
-    "fastapi>=0.110.0",
-    "uvicorn>=0.27.1",
-    "sse-starlette>=1.6.5",
-    "pandas>=2.2.3",
-    "numpy>=2.2.3",
-    "yfinance>=0.2.54",
-    "langchain-deepseek>=0.1.2",
-    "langchain-litellm",
-    "yaml>=0.22.3",
+  "httpx>=0.28.1",
+  "langchain-community>=0.3.19",
+  "langchain-openai>=0.3.8",
+  "langgraph>=0.3.5",
+  "readabilipy>=0.3.0",
+  "python-dotenv>=1.0.1",
+  "socksio>=1.0.0",
+  "markdownify>=1.1.0",
+  "browser-use>=0.1.0",
+  "fastapi>=0.110.0",
+  "uvicorn>=0.27.1",
+  "sse-starlette>=1.6.5",
+  "pandas>=2.2.3",
+  "numpy>=2.2.3",
+  "yfinance>=0.2.54",
+  "langchain-deepseek>=0.1.2",
+  "langchain-litellm",
+  "PyYAML>=6.0.0",
+  "langchain_ollama>=0.3.0",
 ]
 
 [project.optional-dependencies]

@@ -1,6 +1,6 @@
 import importlib
 import inspect
-
+import os
 
 ChatModel = globals().get("ChatModel", {})
 CvModel = globals().get("CvModel", {})
@@ -19,6 +19,10 @@ package_name = __name__
 
 for module_name, mapping_dict in MODULE_MAPPING.items():
     full_module_name = f"{package_name}.{module_name}"
+
+    if not os.path.exists(full_module_name):
+        continue
+
     module = importlib.import_module(full_module_name)
 
     base_class = None

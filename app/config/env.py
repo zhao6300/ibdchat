@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv, find_dotenv
 
 # Load environment variables
-load_dotenv()
+load_dotenv(find_dotenv())
 
 # Reasoning LLM configuration (for complex reasoning tasks)
 REASONING_MODEL = os.getenv("REASONING_MODEL", "o1-mini")

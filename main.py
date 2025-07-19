@@ -1,6 +1,5 @@
 from app.workflow import RAGWorkflow
 
-
 def main():
     workflow = RAGWorkflow(
         llm_provider="basic",

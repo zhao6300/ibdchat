@@ -19,8 +19,7 @@ package_name = __name__
 
 for module_name, mapping_dict in MODULE_MAPPING.items():
     full_module_name = f"{package_name}.{module_name}"
-
-    if not os.path.exists(full_module_name):
+    if importlib.util.find_spec(full_module_name) is None:
         continue
 
     module = importlib.import_module(full_module_name)

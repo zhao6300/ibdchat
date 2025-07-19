@@ -10,7 +10,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from pydantic import BaseModel, Field
-from langchain.document_loaders import TextLoader  # 支持本地文本加载
+from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Chroma
 from app.models import *
 import os
@@ -64,7 +64,7 @@ class DocumentVectorizer:
         model_key = os.getenv("EMBEDDING_MODEL_API_KEY")
         modal_base_url = os.getenv("EMBEDDING_MODEL_BASE_URL")
         self.embedding = EmbeddingModel.get(model_type)(
-            model_name, model_name, modal_base_url)
+            model_key, model_name, modal_base_url)
         self._retriever = None
 
     def build(self):

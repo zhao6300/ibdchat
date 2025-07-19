@@ -23,3 +23,4 @@ def load_prompt(name: str) -> str:
 
 
 KEYWORD_PROMPT_TEMPLATE = load_prompt("keyword_prompt")
+ROUTER_PROMPT_TEMPLATE = load_prompt("router_prompt")

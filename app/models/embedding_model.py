@@ -72,6 +72,12 @@ class Base(ABC):
             pass
         return 0
 
+    def encode(self, texts: list):
+        raise NotImplementedError("Please implement encode method!")
+
+    def embed_documents(self, textx: list):
+        self.encode(textx)
+
 
 class OpenAIEmbed(Base):
     _FACTORY_NAME = "OpenAI"

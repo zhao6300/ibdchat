@@ -21,3 +21,4 @@ VL_API_KEY = os.getenv("VL_API_KEY")
 
 # Chrome Instance configuration
 CHROME_INSTANCE_PATH = os.getenv("CHROME_INSTANCE_PATH")
+TAVILY_MAX_RESULTS = os.getenv("TAVILY_MAX_RESULTS", 5)

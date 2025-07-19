@@ -13,6 +13,7 @@ from .env import (
     VL_API_KEY,
     # Other configurations
     CHROME_INSTANCE_PATH,
+    TAVILY_MAX_RESULTS,
 )
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "VL_API_KEY",
     # Other configurations
     "CHROME_INSTANCE_PATH",
+    "TAVILY_MAX_RESULTS",
 ]

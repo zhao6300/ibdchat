@@ -1,6 +1,4 @@
 from langgraph.graph import END, StateGraph, START
-from langchain_community.tools.tavily_search import TavilySearchResults
-from langchain import hub
 from langchain_core.output_parsers import StrOutputParser
 from typing import List, Literal, Optional, Dict
 from typing_extensions import TypedDict
@@ -14,7 +12,8 @@ from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Chroma
 from app.models import *
 import os
-
+from app.tools import *
+from .prompt_template import *
 
 from app.models.chat_llm import get_llm
 from dotenv import load_dotenv, find_dotenv
@@ -80,6 +79,8 @@ class DocumentVectorizer:
             chunk_overlap=self.chunk_overlap
         )
         corpus = splitter.split_documents(docs)
+        if len(corpus) == 0:
+            return None
         store = Chroma.from_documents(
             documents=corpus,
             collection_name="rag-chroma",
@@ -98,7 +99,7 @@ class RAGWorkflow:
     ):
         self.llm = get_llm(llm_provider)
         self.question_router = self._init_router()
-        self.web_search_tool = TavilySearchResults(k=3)
+        self.web_search_tool = tavily_tool
         vectorizer = DocumentVectorizer(
             urls=urls,
             local_paths=local_paths
@@ -110,11 +111,10 @@ class RAGWorkflow:
         self.answer_grader = self._init_answer_grader()
         self.question_rewriter = self._init_question_rewriter()
         self.app = self._build_workflow()
+        self.mermaid_code = self.app.get_graph().draw_mermaid()
 
     def _init_router(self):
-        system = """You are an expert at routing a user question to a vectorstore or web search.
-                The vectorstore contains documents related to agents, prompt engineering, and adversarial attacks.
-                Use the vectorstore for questions on these topics. Otherwise, use web-search."""
+        system = ROUTER_PROMPT_TEMPLATE
         route_prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", system),
@@ -249,7 +249,7 @@ class RAGWorkflow:
             START,
             lambda s: self.question_router.invoke(
                 {"question": s["question"]}).datasource,
-            {"web_search": "web_search", "vectorstore": "retrieve"}
+            {"web_search": "web_search", "vectorstore": "retrieve", "end": END},
         )
         wf.add_edge("web_search", "generate")
         wf.add_edge("retrieve", "grade_documents")

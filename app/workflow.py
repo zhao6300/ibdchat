@@ -116,7 +116,7 @@ class RAGWorkflow:
     def _init_router(self):
         structured = self.llm.with_structured_output(RouteQuery)
         prompt = ChatPromptTemplate.from_messages([
-            ("system", "Route question to vectorstore or web search."),
+            ("system", "Route question to rag or web search."),
             ("human", "{question}")
         ])
         return prompt | structured
@@ -125,7 +125,7 @@ class RAGWorkflow:
 
         structured = self.llm.with_structured_output(GradeDocuments)
         prompt = ChatPromptTemplate.from_messages([
-            ("system", "Assess document relevance."),
+            ("system", "Assess document relevance. Give a binary score of yes or no."),
             ("human",
              "Retrieved document: {document}\nUser question: {question}")
         ])
@@ -133,7 +133,8 @@ class RAGWorkflow:
 
     def _init_rag_chain(self):
 
-        prompt_str = """You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.Question: {question}
+        prompt_str = """You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
+        Question: {question}
         Context: {context} 
         Answer:"""
 

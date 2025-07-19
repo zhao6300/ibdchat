@@ -9,7 +9,7 @@ from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from pydantic import BaseModel, Field
 from langchain_ollama import Ollama
 from langchain.document_loaders import TextLoader  # 支持本地文本加载
@@ -133,7 +133,12 @@ class RAGWorkflow:
 
     def _init_rag_chain(self):
 
-        return hub.pull("rlm/rag-prompt") | self.llm | StrOutputParser()
+        prompt_str = """You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.Question: {question}
+        Context: {context} 
+        Answer:"""
+
+        prompt = PromptTemplate.from_template(prompt_str)
+        return prompt | self.llm | StrOutputParser()
 
     def _init_hallucination_grader(self):
 

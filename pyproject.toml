@@ -10,10 +10,10 @@ readme = "README.md"
 requires-python = ">=3.12"
 
 authors = [
-  {name = "xx", email = "xx@example.com"},
+  {name = "zw", email = "zhao6305@gmail.com"},
 ]
 maintainers = [
-  {name = "xx", email = "xx@example.com"}
+  {name = "lilonglong", email = "xx@example.com"}
 ]
 
 dependencies = [

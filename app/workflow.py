@@ -253,6 +253,7 @@ class RAGWorkflow:
                 filtered.append(doc)
         return {**state, "documents": filtered}
 
+
     def _transform_query(self, state: GraphState) -> GraphState:
 
         res = self.question_rewriter.invoke({"question": state["question"]})

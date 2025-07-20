@@ -24,10 +24,6 @@ class RouteQuery(BaseModel):
     datasource: str = Field(...)
 
 
-class PlannerQuery(BaseModel):
-    plan: str = Field(...)
-
-
 class GradeDocuments(BaseModel):
     binary_score: str = Field(...)
 
@@ -53,6 +49,12 @@ class GenerateAnswer(BaseModel):
                     "It should be a maximum of three sentences. If the answer cannot be found in the context, "
                     "state: 'I cannot answer based on the provided context.'"
     )
+
+
+class Plan(BaseModel):
+    thought: str = Field(...)
+    plans: List[str] = Field(
+        description="A list of distinct, actionable steps or sub-tasks required to achieve a specific goal. Each item should be a clear, concise instruction.")
 
 
 class GraphState(TypedDict):
@@ -161,7 +163,7 @@ class RAGWorkflow:
                 ("human", "{question}"),
             ]
         )
-        structured = self.llm.with_structured_output(PlannerQuery)
+        structured = self.llm.with_structured_output(Plan)
         res = plan_prompt | structured | self.llm
         return res.invoke({"question": state["question"]})
 

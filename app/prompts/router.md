@@ -14,7 +14,7 @@ Output only one of the following:
     *   If the question clearly falls within **Investment Banking topics** (e.g., Mergers & Acquisitions, Capital Markets, Valuation, Financial Modeling, Private Equity), the relevant conceptual source is `vectorstore`.
     *   For all other general knowledge questions, the relevant conceptual source is `web_search`.
 
-**Your Output Format:**
+**Output Format:**
 
 You must output *exactly one* of the following two formats:
 

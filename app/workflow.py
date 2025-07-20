@@ -21,7 +21,11 @@ load_dotenv(find_dotenv())
 
 
 class RouteQuery(BaseModel):
-    datasource: Literal["vectorstore", "web_search"] = Field(...)
+    datasource: str = Field(...)
+
+
+class PlannerQuery(BaseModel):
+    plan: str = Field(...)
 
 
 class GradeDocuments(BaseModel):
@@ -34,6 +38,21 @@ class GradeHallucinations(BaseModel):
 
 class GradeAnswer(BaseModel):
     binary_score: str = Field(...)
+
+
+class GenerateAnswer(BaseModel):
+    """
+    Structured output for a question-answering task, including a thought process and the final answer.
+    """
+    thought: str = Field(
+        description="A brief reasoning process or internal monologue about how the answer was formulated, "
+                    "or why the answer could not be found in the context."
+    )
+    answer: str = Field(
+        description="The concise answer to the question, strictly based on the provided context. "
+                    "It should be a maximum of three sentences. If the answer cannot be found in the context, "
+                    "state: 'I cannot answer based on the provided context.'"
+    )
 
 
 class GraphState(TypedDict):
@@ -124,6 +143,28 @@ class RAGWorkflow:
         structured = self.llm.with_structured_output(RouteQuery)
         return route_prompt | structured
 
+    def route_decision(self, state: GraphState):
+        res = self.question_router.invoke({"question": state["question"]})
+        if res.datasource == "vectorstore":
+            return "vectorstore"
+        elif res.datasource == "web_search":
+            return "web_search"
+        else:
+            state["generation"] = res.datasource
+            return "final answer"
+
+    def _plan(self, state: GraphState):
+        system = PLANNER_PROMPT_TEMPLATE
+        plan_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", system),
+                ("human", "{question}"),
+            ]
+        )
+        structured = self.llm.with_structured_output(PlannerQuery)
+        res = plan_prompt | structured | self.llm
+        return res.invoke({"question": state["question"]})
+
     def _init_retrieval_grader(self):
 
         system = """You are a grader assessing relevance of a retrieved document to a user question. \n 
@@ -143,13 +184,8 @@ class RAGWorkflow:
 
     def _init_rag_chain(self):
 
-        prompt_str = """You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
-        Question: {question}
-        Context: {context} 
-        Answer:"""
-
-        prompt = PromptTemplate.from_template(prompt_str)
-        return prompt | self.llm | StrOutputParser()
+        prompt = PromptTemplate.from_template(GENERATOR_PROMPT_TEMPLATE)
+        return prompt | self.llm.with_structured_output(GenerateAnswer)
 
     def _init_hallucination_grader(self):
 
@@ -227,7 +263,8 @@ class RAGWorkflow:
         ctx = format_docs(state.get("documents", []))
         out = self.rag_chain.invoke(
             {"context": ctx, "question": state["question"]})
-        return {**state, "generation": out}
+        pprint(out)
+        return {**state, "generation": out.answer}
 
     def _grade_generation(self, state: GraphState) -> str:
         hall = self.hallucination_grader.invoke({"documents": state.get(
@@ -240,6 +277,7 @@ class RAGWorkflow:
 
     def _build_workflow(self):
         wf = StateGraph(GraphState)
+        wf.add_node("planer", self._plan)
         wf.add_node("web_search", self._web_search)
         wf.add_node("retrieve", self._retrieve)
         wf.add_node("grade_documents", self._grade_documents)
@@ -247,9 +285,8 @@ class RAGWorkflow:
         wf.add_node("generate", self._generate)
         wf.add_conditional_edges(
             START,
-            lambda s: self.question_router.invoke(
-                {"question": s["question"]}).datasource,
-            {"web_search": "web_search", "vectorstore": "retrieve", "end": END},
+            self.route_decision,
+            {"web_search": "web_search", "vectorstore": "retrieve", "final answer": END},
         )
         wf.add_edge("web_search", "generate")
         wf.add_edge("retrieve", "grade_documents")

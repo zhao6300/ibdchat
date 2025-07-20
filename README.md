@@ -1,24 +1,50 @@
-# Project Name
-IBD Chat
-## Introduction
-知识库问答系统
+# IBD Chat: 投行智能知识问答系统
 
-## Prerequisites
-- Requirement 1
-- Requirement 2
-- Requirement 3
+## 简介
+IBD Chat 集成了智能路由、多源信息检索、内容评估与自我修正机制，旨在提供准确、可靠且相关的答案。系统能够根据问题类型动态选择最佳信息来源，并对生成答案进行质量检查，确保信息的准确性和可靠性。
 
-## Installation
+## 核心特性
+*   **智能路由**：根据用户问题的意图，自动判断是应从内部知识库检索信息，还是进行外部网络搜索。
+*   **多源检索**：支持从本地文件（如PDF,TXT,Markdown等）加载构建知识库，同时集成Tavily进行实时网络搜索。
+*   **文档评估与过滤**：对检索到的文档进行相关性评估，过滤掉不相关的文档，确保信息质量。
+*   **答案生成与事实核查**：基于检索到的上下文生成简洁准确的答案，并进行幻觉检查（即答案是否基于提供的事实）。
+*   **问题重写**：当检索结果不理想时，系统能够自动重写问题，以优化二次检索的效率和准确性。
+*   **自我修正循环**：内置答案评估机制，如果生成的答案不理想或不被支持，系统会尝试重写问题并重新检索，形成一个自我优化的流程。
+*   **模块化与可扩展**：LLM 和 Embedding 模型可灵活配置和替换。
+
+## 安装
+
+1.  **克隆仓库**
+    ```bash
+    cd ibdchat
+    ```
+
+2.  **(可选) 创建并激活虚拟环境**
+    强烈建议为项目创建一个独立的 Python 虚拟环境，以避免包冲突。
+    ```bash
+    python -m venv venv
+    # Linux/macOS
+    source venv/bin/activate
+    # Windows
+    .\venv\Scripts\activate
+    ```
+
+3.  **安装项目依赖**
+    ```bash
+    pip install -e .
+    ```
+
+## 配置
+项目使用 `.env` 文件来管理敏感信息和配置变量。
+
+1.  **复制 `.env.example` 文件**
+    ```bash
+    cp .env.example .env
+    ```
+
+## 运行测试
+
+运行 `main.py` 文件中定义的示例，请执行：
 ```bash
-pip install -e .
-
 python main.py
 ```
-
-## Configuration
-Describe any configuration steps needed:
-1. Copy `.env.example` to `.env`
-2. Update the configuration values
-3. Additional setup steps if needed
-
-

@@ -22,5 +22,7 @@ def load_prompt(name: str) -> str:
         return content
 
 
-KEYWORD_PROMPT_TEMPLATE = load_prompt("keyword_prompt")
-ROUTER_PROMPT_TEMPLATE = load_prompt("router_prompt")
+KEYWORD_PROMPT_TEMPLATE = load_prompt("keyword")
+PLANNER_PROMPT_TEMPLATE = load_prompt("planner")
+ROUTER_PROMPT_TEMPLATE = load_prompt("router")
+GENERATOR_PROMPT_TEMPLATE = load_prompt("generator")

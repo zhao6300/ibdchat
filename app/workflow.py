@@ -51,6 +51,11 @@ class GenerateAnswer(BaseModel):
     )
 
 
+class QueryCandidate(BaseModel):
+    thought: str = Field(...)
+    query: List[str] = Field(...)
+
+
 class Plan(BaseModel):
     thought: str = Field(...)
     plans: List[str] = Field(
@@ -221,12 +226,9 @@ class RAGWorkflow:
 
     def _init_question_rewriter(self):
 
-        # Prompt
-        system = """You a question re-writer that converts an input question to a better version that is optimized \n 
-            for vectorstore retrieval. Look at the input and try to reason about the underlying semantic intent / meaning."""
         re_write_prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", system),
+                ("system", REWRITER_PROMPT_TEMPLATE),
                 (
                     "human",
                     "Here is the initial question: \n\n {question} \n Formulate an improved question.",
@@ -234,7 +236,7 @@ class RAGWorkflow:
             ]
         )
 
-        return re_write_prompt | self.llm | StrOutputParser()
+        return re_write_prompt | self.llm.with_structured_output(QueryCandidate)
 
     def _retrieve(self, state: GraphState) -> GraphState:
         docs = self.retriever.invoke(state["question"])
@@ -253,8 +255,8 @@ class RAGWorkflow:
 
     def _transform_query(self, state: GraphState) -> GraphState:
 
-        new_q = self.question_rewriter.invoke({"question": state["question"]})
-        return {**state, "question": new_q}
+        res = self.question_rewriter.invoke({"question": state["question"]})
+        return {**state, "question": res.query[0]}
 
     def _web_search(self, state: GraphState) -> GraphState:
         results = self.web_search_tool.invoke({"query": state["question"]})

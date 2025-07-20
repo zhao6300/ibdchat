@@ -1,4 +1,3 @@
-
 # Project Name
 IBD Chat
 ## Introduction
@@ -11,7 +10,7 @@ IBD Chat
 
 ## Installation
 ```bash
-pip install -e pyproject.toml
+pip install -e .
 
 python main.py
 ```

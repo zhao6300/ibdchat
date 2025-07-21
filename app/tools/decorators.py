@@ -1,7 +1,7 @@
 import logging
 import functools
 from typing import Any, Callable, Type, TypeVar
-
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")

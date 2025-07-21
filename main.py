@@ -8,9 +8,10 @@ def main():
         ],
         # local_paths=["./README.md"]
     )
-    print(workflow.mermaid_code)
-    # workflow.run("What are the types of agent memory?")
+    while True:
+        question = input("请输入问题（输入exit退出）：")
+        workflow.run(question)
 
 
 if __name__ == "__main__":
-    main()
+    main() 

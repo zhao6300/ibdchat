@@ -141,7 +141,7 @@ class LocalAIEmbed(Base):
 class QWenEmbed(Base):
     _FACTORY_NAME = "Tongyi-Qianwen"
 
-    def __init__(self, key, model_name="text_embedding_v2", **kwargs):
+    def __init__(self, key, model_name="text_embedding_v2", *args, **kwargs):
         self.key = key
         self.model_name = model_name
 

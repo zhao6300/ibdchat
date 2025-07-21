@@ -1,7 +1,8 @@
+import logging
 from langgraph.graph import END, StateGraph, START
 from langchain_core.output_parsers import StrOutputParser
 from typing import List, Literal, Optional, Dict
-from typing_extensions import TypedDict
+from typing_extensions import TypedDict, Annotated
 from pprint import pprint
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -14,14 +15,21 @@ from app.models import *
 import os
 from app.tools import *
 from .prompt_template import *
+import uuid
 
 from app.models.chat_llm import get_llm
 from dotenv import load_dotenv, find_dotenv
+from pydantic_core import from_json
+
 load_dotenv(find_dotenv())
+
+LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
+logging.basicConfig(format=LOG_FORMAT)
 
 
 class RouteQuery(BaseModel):
-    datasource: str = Field(...)
+    thought: str = Field(...)
+    result: str = Field(...)
 
 
 class GradeDocuments(BaseModel):
@@ -65,6 +73,7 @@ class Plan(BaseModel):
 class GraphState(TypedDict):
     question: str
     generation: str
+    next_step: Optional[str]
     documents: List[Document]
 
 
@@ -116,6 +125,12 @@ class DocumentVectorizer:
         return self._retriever
 
 
+class Session(BaseModel):
+    final_answer: str
+    first_chat: bool = True
+    thread: dict
+
+
 class RAGWorkflow:
     def __init__(
         self,
@@ -138,26 +153,32 @@ class RAGWorkflow:
         self.question_rewriter = self._init_question_rewriter()
         self.app = self._build_workflow()
         self.mermaid_code = self.app.get_graph().draw_mermaid()
+        self.sessions = {}
 
     def _init_router(self):
         system = ROUTER_PROMPT_TEMPLATE
         route_prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", system),
-                ("human", "{question}"),
+                ("user", "{question}"),
             ]
         )
-        structured = self.llm.with_structured_output(RouteQuery)
-        return route_prompt | structured
+        return route_prompt | self.llm
 
-    def route_decision(self, state: GraphState):
+    def _route_decision(self, state: GraphState):
         res = self.question_router.invoke({"question": state["question"]})
-        if res.datasource == "vectorstore":
+        route = RouteQuery.model_validate(from_json(res.content))
+        state["next_step"] = route.result
+        return {**state, "route": route}
+
+    def choose(self, state: GraphState):
+        if state["next_step"] == "vectorstore":
             return "vectorstore"
-        elif res.datasource == "web_search":
+        elif state["next_step"] == "web_search":
             return "web_search"
         else:
-            state["generation"] = res.datasource
+            state["generation"] = state["next_step"]
+            state["next_step"] = "final answer"
             return "final answer"
 
     def _plan(self, state: GraphState):
@@ -285,15 +306,17 @@ class RAGWorkflow:
     def _build_workflow(self):
         wf = StateGraph(GraphState)
         wf.add_node("planer", self._plan)
+        wf.add_node("router", self._route_decision)
         wf.add_node("step", self._step)
         wf.add_node("web_search", self._web_search)
         wf.add_node("retrieve", self._retrieve)
         wf.add_node("grade_documents", self._grade_documents)
         wf.add_node("transform_query", self._transform_query)
         wf.add_node("generate", self._generate)
+        wf.add_edge(START, "router")
         wf.add_conditional_edges(
-            START,
-            self.route_decision,
+            "router",
+            self.choose,
             {"web_search": "web_search", "vectorstore": "retrieve", "final answer": END},
         )
         wf.add_edge("web_search", "generate")
@@ -313,6 +336,13 @@ class RAGWorkflow:
         return wf.compile()
 
     def run(self, question: str):
-        for output in self.app.stream({"question": question}):
+        session = self.sessions.get("user_id")
+        if not session:
+            thread_id = uuid.uuid4()
+            thread = {"configurable": {"thread_id": thread_id}}
+            session = Session(
+                final_answer="no", thread=thread, first_chat=True)
+            self.sessions["user_id"] = session
+        thread = session.thread
+        for output in self.app.stream({"question": question}, thread, stream_mode="values", debug=False):
             pprint(output)
-        print(output.get("generation", ""))

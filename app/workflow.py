@@ -253,7 +253,6 @@ class RAGWorkflow:
                 filtered.append(doc)
         return {**state, "documents": filtered}
 
-
     def _transform_query(self, state: GraphState) -> GraphState:
 
         res = self.question_rewriter.invoke({"question": state["question"]})
@@ -280,9 +279,13 @@ class RAGWorkflow:
             return "useful" if ans.binary_score == "yes" else "not useful"
         return "not supported"
 
+    def _step(self, state: GraphState) -> GraphState:
+        pass
+
     def _build_workflow(self):
         wf = StateGraph(GraphState)
         wf.add_node("planer", self._plan)
+        wf.add_node("step", self._step)
         wf.add_node("web_search", self._web_search)
         wf.add_node("retrieve", self._retrieve)
         wf.add_node("grade_documents", self._grade_documents)

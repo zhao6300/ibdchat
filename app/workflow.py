@@ -29,7 +29,8 @@ logging.basicConfig(format=LOG_FORMAT)
 
 class RouteQuery(BaseModel):
     thought: str = Field(...)
-    result: str = Field(...)
+    next_step: str = Field(...)
+    content: str = Field(...)
 
 
 class GradeDocuments(BaseModel):
@@ -71,9 +72,10 @@ class Plan(BaseModel):
 
 
 class GraphState(TypedDict):
+    thought: str
     question: str
-    generation: str
     next_step: Optional[str]
+    generation: str
     documents: List[Document]
 
 
@@ -167,9 +169,8 @@ class RAGWorkflow:
 
     def _route_decision(self, state: GraphState):
         res = self.question_router.invoke({"question": state["question"]})
-        route = RouteQuery.model_validate(from_json(res.content))
-        state["next_step"] = route.result
-        return {**state, "route": route}
+        route = RouteQuery.model_validate(from_json(res))
+        return {**state, "next_step": route.next_step, "generation": route.content, "thought": route.thought}
 
     def choose(self, state: GraphState):
         if state["next_step"] == "vectorstore":
@@ -177,9 +178,7 @@ class RAGWorkflow:
         elif state["next_step"] == "web_search":
             return "web_search"
         else:
-            state["generation"] = state["next_step"]
-            state["next_step"] = "final answer"
-            return "final answer"
+            return "final_answer"
 
     def _plan(self, state: GraphState):
         system = PLANNER_PROMPT_TEMPLATE
@@ -207,18 +206,16 @@ class RAGWorkflow:
             ]
         )
 
-        structured = self.llm.with_structured_output(GradeDocuments)
-        return grade_prompt | structured
+        return grade_prompt | self.llm
 
     def _init_rag_chain(self):
 
         prompt = PromptTemplate.from_template(GENERATOR_PROMPT_TEMPLATE)
-        return prompt | self.llm.with_structured_output(GenerateAnswer)
-
+        return prompt | self.llm
+    
+    
     def _init_hallucination_grader(self):
 
-        structured = self.llm.with_structured_output(GradeHallucinations)
-        # Prompt
         system = """You are a grader assessing whether an LLM generation is grounded in / supported by a set of retrieved facts. \n 
             Give a binary score 'yes' or 'no'. 'Yes' means that the answer is grounded in / supported by the set of facts."""
         hallucination_prompt = ChatPromptTemplate.from_messages(
@@ -228,11 +225,11 @@ class RAGWorkflow:
                  "Set of facts: \n\n {documents} \n\n LLM generation: {generation}"),
             ]
         )
-        return hallucination_prompt | structured
+        return hallucination_prompt | self.llm
 
     def _init_answer_grader(self):
 
-        structured = self.llm.with_structured_output(GradeAnswer)
+        # structured = self.llm.with_structured_output(GradeAnswer)
         # Prompt
         system = """You are a grader assessing whether an answer addresses / resolves a question \n 
             Give a binary score 'yes' or 'no'. Yes' means that the answer resolves the question."""
@@ -243,7 +240,7 @@ class RAGWorkflow:
                  "User question: \n\n {question} \n\n LLM generation: {generation}"),
             ]
         )
-        return answer_prompt | structured
+        return answer_prompt | self.llm
 
     def _init_question_rewriter(self):
 
@@ -257,7 +254,7 @@ class RAGWorkflow:
             ]
         )
 
-        return re_write_prompt | self.llm.with_structured_output(QueryCandidate)
+        return re_write_prompt | self.llm
 
     def _retrieve(self, state: GraphState) -> GraphState:
         docs = self.retriever.invoke(state["question"])
@@ -305,9 +302,9 @@ class RAGWorkflow:
 
     def _build_workflow(self):
         wf = StateGraph(GraphState)
-        wf.add_node("planer", self._plan)
+        # wf.add_node("planer", self._plan)
         wf.add_node("router", self._route_decision)
-        wf.add_node("step", self._step)
+        # wf.add_node("step", self._step)
         wf.add_node("web_search", self._web_search)
         wf.add_node("retrieve", self._retrieve)
         wf.add_node("grade_documents", self._grade_documents)
@@ -317,7 +314,7 @@ class RAGWorkflow:
         wf.add_conditional_edges(
             "router",
             self.choose,
-            {"web_search": "web_search", "vectorstore": "retrieve", "final answer": END},
+            {"web_search": "web_search", "vectorstore": "retrieve", "final_answer": END},
         )
         wf.add_edge("web_search", "generate")
         wf.add_edge("retrieve", "grade_documents")
@@ -344,5 +341,7 @@ class RAGWorkflow:
                 final_answer="no", thread=thread, first_chat=True)
             self.sessions["user_id"] = session
         thread = session.thread
-        for output in self.app.stream({"question": question}, thread, stream_mode="values", debug=False):
-            pprint(output)
+        for output in self.app.stream({"question": question}, thread, stream_mode="updates", debug=True):
+            if output.get("next_step") == "final_answer":
+                pprint(output)
+                break

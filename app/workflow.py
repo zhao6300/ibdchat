@@ -23,10 +23,6 @@ from pydantic_core import from_json
 
 load_dotenv(find_dotenv())
 
-LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
-logging.basicConfig(format=LOG_FORMAT)
-
-
 class RouteQuery(BaseModel):
     thought: str = Field(...)
     next_step: str = Field(...)

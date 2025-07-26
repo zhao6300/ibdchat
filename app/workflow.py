@@ -23,6 +23,7 @@ from pydantic_core import from_json
 
 load_dotenv(find_dotenv())
 
+
 class RouteQuery(BaseModel):
     thought: str = Field(...)
     next_step: str = Field(...)
@@ -30,10 +31,12 @@ class RouteQuery(BaseModel):
 
 
 class GradeDocuments(BaseModel):
+    thought: str = Field(...)
     binary_score: str = Field(...)
 
 
 class GradeHallucinations(BaseModel):
+    thought: str = Field(...)
     binary_score: str = Field(...)
 
 
@@ -190,13 +193,9 @@ class RAGWorkflow:
 
     def _init_retrieval_grader(self):
 
-        system = """You are a grader assessing relevance of a retrieved document to a user question. \n 
-            If the document contains keyword(s) or semantic meaning related to the user question, grade it as relevant. \n
-            It does not need to be a stringent test. The goal is to filter out erroneous retrievals. \n
-            Give a binary score 'yes' or 'no' score to indicate whether the document is relevant to the question."""
         grade_prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", system),
+                ("system", DOCUMENTGRADER_PROMPT_TEMPLATE),
                 ("human",
                  "Retrieved document: \n\n {document} \n\n User question: {question}"),
             ]
@@ -208,8 +207,7 @@ class RAGWorkflow:
 
         prompt = PromptTemplate.from_template(GENERATOR_PROMPT_TEMPLATE)
         return prompt | self.llm
-    
-    
+
     def _init_hallucination_grader(self):
 
         system = """You are a grader assessing whether an LLM generation is grounded in / supported by a set of retrieved facts. \n 
@@ -262,7 +260,7 @@ class RAGWorkflow:
         filtered = []
         for doc in state.get("documents", []):
             score = self.retrieval_grader.invoke(
-                {"question": qs, "document": doc.page_content})
+                {"question": qs, "documents": doc.page_content})
             if score.binary_score == "yes":
                 filtered.append(doc)
         return {**state, "documents": filtered}
@@ -298,9 +296,9 @@ class RAGWorkflow:
 
     def _build_workflow(self):
         wf = StateGraph(GraphState)
-        # wf.add_node("planer", self._plan)
+        wf.add_node("planer", self._plan)
         wf.add_node("router", self._route_decision)
-        # wf.add_node("step", self._step)
+        wf.add_node("step", self._step)
         wf.add_node("web_search", self._web_search)
         wf.add_node("retrieve", self._retrieve)
         wf.add_node("grade_documents", self._grade_documents)

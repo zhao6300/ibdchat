@@ -140,7 +140,7 @@ class RAGWorkflow:
         local_paths: Optional[List[str]] = None
     ):
         self.llm = get_llm(llm_provider)
-        self.question_router = self._init_router()
+        self.analyzer = self._init_router()
         self.web_search_tool = tavily_tool
         vectorizer = DocumentVectorizer(
             urls=urls,
@@ -157,7 +157,7 @@ class RAGWorkflow:
         self.sessions = {}
 
     def _init_router(self):
-        system = ROUTER_PROMPT_TEMPLATE
+        system = ANALYZER_PROMPT_TEMPLATE
         route_prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", system),
@@ -165,9 +165,9 @@ class RAGWorkflow:
             ]
         )
         return route_prompt | self.llm
-
-    def _route_decision(self, state: GraphState):
-        res = self.question_router.invoke({"question": state["question"]})
+ 
+    def query_analysis(self, state: GraphState):
+        res = self.analyzer.invoke({"question": state["question"]})
         route = RouteQuery.model_validate(from_json(res))
         return {**state, "next_step": route.next_step, "generation": route.content, "thought": route.thought}
 
@@ -297,16 +297,16 @@ class RAGWorkflow:
     def _build_workflow(self):
         wf = StateGraph(GraphState)
         wf.add_node("planer", self._plan)
-        wf.add_node("router", self._route_decision)
+        wf.add_node("query_analysis", self.query_analysis)
         wf.add_node("step", self._step)
         wf.add_node("web_search", self._web_search)
         wf.add_node("retrieve", self._retrieve)
         wf.add_node("grade_documents", self._grade_documents)
-        wf.add_node("transform_query", self._transform_query)
+        wf.add_node("query_rewrite", self._transform_query)
         wf.add_node("generate", self._generate)
-        wf.add_edge(START, "router")
+        wf.add_edge(START, "query_analysis")
         wf.add_conditional_edges(
-            "router",
+            "query_analysis",
             self.choose,
             {"web_search": "web_search", "vectorstore": "retrieve", "final_answer": END},
         )
@@ -314,14 +314,14 @@ class RAGWorkflow:
         wf.add_edge("retrieve", "grade_documents")
         wf.add_conditional_edges(
             "grade_documents",
-            lambda s: "generate" if s.get("documents") else "transform_query",
-            {"transform_query": "transform_query", "generate": "generate"}
+            lambda s: "generate" if s.get("documents") else "query_rewrite",
+            {"query_rewrite": "query_rewrite", "generate": "generate"}
         )
-        wf.add_edge("transform_query", "retrieve")
+        wf.add_edge("query_rewrite", "retrieve")
         wf.add_conditional_edges(
             "generate",
             self._grade_generation,
-            {"useful": END, "not useful": "transform_query",
+            {"useful": END, "not useful": "query_rewrite",
                 "not supported": "generate"}
         )
         return wf.compile()

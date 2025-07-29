@@ -24,7 +24,7 @@ def load_prompt(name: str) -> str:
 
 KEYWORD_PROMPT_TEMPLATE = load_prompt("keyword")
 PLANNER_PROMPT_TEMPLATE = load_prompt("planner")
-ROUTER_PROMPT_TEMPLATE = load_prompt("router")
+ANALYZER_PROMPT_TEMPLATE = load_prompt("analyzer")
 GENERATOR_PROMPT_TEMPLATE = load_prompt("generator")
 REWRITER_PROMPT_TEMPLATE = load_prompt("rewriter")
 DOCUMENTGRADER_PROMPT_TEMPLATE = load_prompt("document_grader")

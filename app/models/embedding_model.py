@@ -13,11 +13,15 @@ import requests
 from ollama import Client
 from openai import OpenAI
 
+
+fmt = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 # --- Utility Functions ---
 # Configure logging
 logging.basicConfig(
-    format='%((asctime)s)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    level=logging.INFO,
+    format='{asctime} [{levelname}] {message}',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    style='{'
 )
 
 
@@ -55,10 +59,7 @@ class Base(ABC):
     def __init__(self, key, model_name):
         pass
 
-    def encode(self, texts: list):
-        raise NotImplementedError("Please implement encode method!")
-
-    def encode_queries(self, text: str):
+    def embed_query(self, text: str) -> list[float]:
         raise NotImplementedError("Please implement encode method!")
 
     def total_token_count(self, resp):
@@ -72,11 +73,11 @@ class Base(ABC):
             pass
         return 0
 
-    def encode(self, texts: list):
+    def encode(self, texts: list[str]) -> list[list[float]]:
         raise NotImplementedError("Please implement encode method!")
 
-    def embed_documents(self, textx: list):
-        self.encode(textx)
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return self.encode(texts)
 
 
 class OpenAIEmbed(Base):
@@ -88,7 +89,7 @@ class OpenAIEmbed(Base):
         self.client = OpenAI(api_key=key, base_url=base_url)
         self.model_name = model_name
 
-    def encode(self, texts: list):
+    def embed_query(self, text: str) -> list[float]:
         # OpenAI requires batch size <=16
         batch_size = 16
         texts = [truncate(t, 8191) for t in texts]
@@ -133,7 +134,7 @@ class LocalAIEmbed(Base):
         # local embedding for LmStudio do not count tokens
         return np.array(ress), 1024
 
-    def encode_queries(self, text):
+    def embed_query(self, text: str) -> list[float]:
         embds, cnt = self.encode([text])
         return np.array(embds[0]), cnt
 
@@ -175,13 +176,14 @@ class QWenEmbed(Base):
             except Exception as _e:
                 log_exception(_e, resp)
                 raise
-        return np.array(res), token_count
+        return res
 
-    def encode_queries(self, text):
+    def embed_query(self, text: str) -> list[float]:
         resp = dashscope.TextEmbedding.call(
             model=self.model_name, input=text[:2048], api_key=self.key, text_type="query")
         try:
-            return np.array(resp["output"]["embeddings"][0]["embedding"]), self.total_token_count(resp)
+            # return np.array(resp["output"]["embeddings"][0]["embedding"]), self.total_token_count(resp)
+            return resp["output"]["embeddings"][0]["embedding"]
         except Exception as _e:
             log_exception(_e, resp)
 
@@ -211,7 +213,7 @@ class OllamaEmbed(Base):
             tks_num += 128
         return np.array(arr), tks_num
 
-    def encode_queries(self, text):
+    def embed_query(self, text: str) -> list[float]:
         for token in OllamaEmbed._special_tokens:
             text = text.replace(token, "")
         res = self.client.embeddings(

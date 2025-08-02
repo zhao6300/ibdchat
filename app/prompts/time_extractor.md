@@ -50,8 +50,6 @@ You must strictly adhere to the following rules:
       }
     }}
 
----
-
 **Example 2 (Chinese): Specific Start and Relative End Date**
 
 *   **Inputs:**

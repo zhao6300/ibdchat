@@ -10,7 +10,6 @@ Extract the most important keywords/phrases of a given piece of text content.
 - The keywords are delimited by ENGLISH COMMA.
 - Output keywords ONLY.
 
----
 
 ## Text Content
 {{ content }}

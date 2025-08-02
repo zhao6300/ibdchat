@@ -81,16 +81,16 @@ def get_llm(llm_type: LLMType) -> ChatOpenAI | ChatDeepSeek:
             api_key=REASONING_API_KEY,
         )
     elif llm_type == "basic":
-        
-        # llm = create_openai_llm(
-        #     model=BASIC_MODEL,
-        #     base_url=BASIC_BASE_URL,
-        #     api_key=BASIC_API_KEY,
-        # )
-        from langchain_community.llms import Tongyi
-        tongyi = Tongyi(api_key=BASIC_API_KEY)
-        return tongyi
-    
+
+        llm = create_openai_llm(
+            model=BASIC_MODEL,
+            base_url=BASIC_BASE_URL,
+            api_key=BASIC_API_KEY,
+        )
+        # from langchain_community.llms import Tongyi
+        # llm = Tongyi(api_key=BASIC_API_KEY)
+        return llm
+
     elif llm_type == "vision":
         llm = create_openai_llm(
             model=VL_MODEL,

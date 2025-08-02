@@ -8,16 +8,13 @@ Your primary task is to analyze the provided `Question` and `Context`, and then 
 
 ## Requirements
 
-1.  **Output Format:** Your entire response MUST be *only* the JSON object, wrapped in triple backticks (```json). Do not include any additional text, conversational filler, or explanations outside of the JSON structure.
+1.  **Output Format:** Your entire response MUST be *only* the JSON object. Do not include any additional text, conversational filler, or explanations outside of the JSON structure.
 
 2.  **JSON Object Structure:** The generated JSON object must conform precisely to the following structure:
-
-    ```json
-    {
+    {{
       "thought": "string // A brief reasoning process or internal monologue about how the answer was formulated, or why the answer could not be found in the context.",
       "answer": "string // The concise answer to the question, strictly following the derivation rules below. It should be a maximum of three sentences if derived from context.'"
-    }
-    ```
+    }}
 
 3.  **Content Rules for JSON Fields:**
     *   **Answer Derivation (`answer` field):**
@@ -32,5 +29,6 @@ Your primary task is to analyze the provided `Question` and `Context`, and then 
 
 ## input
 
-**Question:** {{question}}
-**Context:** {{context}}
+**Context:** {context}
+**Question:** {question}
+

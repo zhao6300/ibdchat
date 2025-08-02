@@ -23,16 +23,14 @@ Before generating the final output, you must internally follow these analysis st
 Your final output **MUST** be a single, valid JSON object. This object must strictly adhere to the following structure, corresponding to a Pydantic model `class QueryCandidate(BaseModel)`.
 
 *   **JSON Structure:**
-
-    ```json
-    {
+    {{
       "thought": "A string summarizing your analysis and strategy.",
       "query": [
         "Optimized query string 1",
         "Optimized query string 2"
       ]
-    }
-    ```
+    }}
+
 
 *   **Field Descriptions:**
     *   **`thought` (string):** This field must contain a concise, step-by-step summary of your analysis process. Explain the original query's intent, the key entities identified, and the strategy (e.g., expansion, disambiguation) you chose and why.
@@ -48,12 +46,10 @@ Your final output **MUST** be a single, valid JSON object. This object must stri
 
 **Expected JSON Output:**
 
-```json
-{
+{{
   "thought": "The user's query 'Is Tesla's autopilot safe?' is ambiguous. It could refer to the technical safety mechanisms or the public/regulatory view on its safety. My strategy is to disambiguate this into two separate, detailed queries. The first will focus on the technical and statistical analysis of the Autopilot system. The second will focus on the societal and legal aspects, including controversies and regulatory actions.",
   "query": [
     "A technical analysis of the safety of Tesla's Autopilot system, including its sensor suite, software algorithms, and accident rate data from real-world driving scenarios.",
     "Information on the regulatory scrutiny, public controversies, and legal cases related to the safety performance of Tesla's Autopilot feature."
   ]
-}
-```
+}}

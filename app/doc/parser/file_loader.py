@@ -1,4 +1,4 @@
-
+from langchain_core.documents import BaseDocumentTransformer, Document
 
 class FileLoader:
     def __init__(self, file_path: str):

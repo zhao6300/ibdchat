@@ -1,6 +1,8 @@
+from langchain_core.documents import BaseDocumentTransformer, Document
 
+from typing import List
 class BaseParser:
-    def parse(self)-> list
+    def split_documents(self)-> List[Document]:
         """
         Parses the document and returns a list of parsed items.
         

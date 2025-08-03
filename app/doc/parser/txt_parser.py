@@ -15,5 +15,13 @@ class TxtParser(BaseParser):
     def __init__(self, file_path: str):
         pass
 
-    def parse(self) -> List[TxtChunk]:
-        pass
+    def split_documents(self) -> List[TxtChunk]:
+        """
+        Parses the TXT file and returns a list of TxtChunk items.
+
+        Returns:
+            List[TxtChunk]: A list of parsed chunks from the TXT file.
+        """
+        # Implementation for parsing the TXT file goes here
+        # For now, returning an empty list as a placeholder
+        return []

@@ -17,7 +17,7 @@ def main():
     #     question = input("请输入问题（输入exit退出）：")
     #     workflow.run(question)
     # print(workflow.mermaid_code)
-    workflow.run("投行智能打分系统方案总结")
+    workflow.run("总结投行智能打分系统方案的特点和优势")
 
 
 if __name__ == "__main__":

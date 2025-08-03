@@ -122,7 +122,7 @@ class ChromaDB:
         """Add documents to the ChromaDB collection."""
         return self.db.add_documents(documents)
 
-    def retrieve(self, query: str, k: int = 5) -> List[Document]:
+    def retrieve(self, query: str, k: int = 2) -> List[Document]:
         """Retrieve documents based on a query."""
         return self.db.similarity_search(query, k=k)
 
@@ -297,7 +297,7 @@ class RAGWorkflow:
             score = GradeDocuments.model_validate(from_json(score_res.content))
             if score.binary_score == "yes":
                 filtered.append(doc)
-        return {**state, "documents": filtered}
+        return {**state, "thought": score.thought, "documents": filtered}
 
     def _transform_query(self, state: GraphState) -> GraphState:
 
@@ -331,9 +331,9 @@ class RAGWorkflow:
                     {"question": state["question"], "generation": out.answer})
                 ans = AnswerGrader.model_validate(from_json(ans_res.content))
                 if ans.binary_score == "yes":
-                    return {**state, "next_step": "final_answer", "generation": out.answer, 'generation_count': state.get("generation_count", 0) + 1}
+                    return {**state, "thought": ans.thought,  "next_step": "final_answer", "generation": out.answer, 'generation_count': state.get("generation_count", 0) + 1}
 
-            return {**state, "next_step": "query_write", 'generation_count': state.get("generation_count", 0) + 1, "generation": out.answer}
+            return {**state, "thought": ans.thought, "next_step": "query_write", 'generation_count': state.get("generation_count", 0) + 1, "generation": out.answer}
 
         return {**state, "next_step": "out_of_max_generation_count", 'generation_count': 0}
 
@@ -390,8 +390,6 @@ class RAGWorkflow:
             self.sessions["user_id"] = session
         thread = session.thread
         for output in self.app.stream({"question": question}, thread, stream_mode="updates", debug=True):
-            if output.get("next_step") == "final_answer":
-                import pdb
-                pdb.set_trace()
+            if output.get("next_step") == "final_answer" or output.get("next_step") == "out_of_max_generation_count":
                 pprint(output)
                 break

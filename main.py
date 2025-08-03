@@ -10,13 +10,14 @@ def main():
         urls=[
             # "https://gitee.com/mindspore/mindspore/blob/master/README.md",
         ],
-        local_paths=["./README.md"]
+        # local_paths=["./README.md"]
+        local_paths=["./智能打分系统.docx"],
     )
     # while True:
     #     question = input("请输入问题（输入exit退出）：")
     #     workflow.run(question)
     # print(workflow.mermaid_code)
-    workflow.run("投行智能知识问答能做什么？")
+    workflow.run("投行智能打分系统方案总结")
 
 
 if __name__ == "__main__":

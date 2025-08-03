@@ -9,7 +9,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from pydantic import BaseModel, Field
-from langchain_community.document_loaders import TextLoader
+from langchain_community.document_loaders import TextLoader, Docx2txtLoader
 from langchain_chroma import Chroma
 from app.models import *
 import os
@@ -70,12 +70,35 @@ class Plan(BaseModel):
         description="A list of distinct, actionable steps or sub-tasks required to achieve a specific goal. Each item should be a clear, concise instruction.")
 
 
+class HullucinationGrader(BaseModel):
+    thought: str = Field(
+        description="A brief reasoning process or internal monologue about how the answer was formulated, "
+                    "or why the answer could not be found in the context."
+    )
+    binary_score: Literal["yes", "no"] = Field(
+        description="A binary score indicating whether the LLM generation is grounded in the provided documents. "
+                    "'yes' means it is grounded, 'no' means it is not."
+    )
+
+
+class AnswerGrader(BaseModel):
+    thought: str = Field(
+        description="A brief reasoning process or internal monologue about how the answer was formulated, "
+                    "or why the answer could not be found in the context."
+    )
+    binary_score: Literal["yes", "no"] = Field(
+        description="A binary score indicating whether the LLM generation is a useful answer to the question. "
+                    "'yes' means it is useful, 'no' means it is not."
+    )
+
+
 class GraphState(TypedDict):
     thought: str
     question: str
     next_step: Optional[str]
     generation: str
     documents: List[Document]
+    generation_count: int
 
 
 def format_docs(docs: List[Document]) -> str:
@@ -127,7 +150,10 @@ class DocumentVectorizer:
             docs.extend(WebBaseLoader(url).load())
         # 加载本地文档
         for path in self.local_paths:
-            docs.extend(TextLoader(path).load())
+            if path.endswith('.docx'):
+                docs.extend(Docx2txtLoader(path).load())
+            else:
+                docs.extend(TextLoader(path).load())
         splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap
@@ -168,6 +194,7 @@ class RAGWorkflow:
         self.app = self._build_workflow()
         self.mermaid_code = self.app.get_graph().draw_mermaid()
         self.sessions = {}
+        self.max_generation_count = 3
 
     def _init_router(self):
         system = ANALYZER_PROMPT_TEMPLATE
@@ -222,12 +249,9 @@ class RAGWorkflow:
         return prompt | self.llm
 
     def _init_hallucination_grader(self):
-
-        system = """You are a grader assessing whether an LLM generation is grounded in / supported by a set of retrieved facts. \n 
-            Give a binary score 'yes' or 'no'. 'Yes' means that the answer is grounded in / supported by the set of facts."""
         hallucination_prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", system),
+                ("system", HALLUCINATOR_PROMPT_TEMPLATE),
                 ("human",
                  "Set of facts: \n\n {documents} \n\n LLM generation: {generation}"),
             ]
@@ -236,13 +260,9 @@ class RAGWorkflow:
 
     def _init_answer_grader(self):
 
-        # structured = self.llm.with_structured_output(GradeAnswer)
-        # Prompt
-        system = """You are a grader assessing whether an answer addresses / resolves a question \n 
-            Give a binary score 'yes' or 'no'. Yes' means that the answer resolves the question."""
         answer_prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", system),
+                ("system", ANSWER_GRADER_ROMPT_TEMPLATE),
                 ("human",
                  "User question: \n\n {question} \n\n LLM generation: {generation}"),
             ]
@@ -292,22 +312,38 @@ class RAGWorkflow:
         return {**state, "documents": [Document(page_content=content)]}
 
     def _generate(self, state: GraphState) -> GraphState:
-        ctx = format_docs(state.get("documents", []))
-        out_res = self.rag_chain.invoke(
-            {"context": ctx, "question": state["question"]})
-        pprint(out_res.content)
-        out = GenerateAnswer.model_validate(from_json(out_res.content))
-        return {**state, "generation": out.answer}
+
+        if self.max_generation_count > 0 and state.get("generation_count", 0) < self.max_generation_count:
+
+            ctx = format_docs(state.get("documents", []))
+
+            out_res = self.rag_chain.invoke(
+                {"context": ctx, "question": state["question"]})
+            pprint(out_res.content)
+            out = GenerateAnswer.model_validate(from_json(out_res.content))
+
+            hall_res = self.hallucination_grader.invoke({"documents": state.get(
+                "documents", []), "generation": out.answer})
+            hall = HullucinationGrader.model_validate(
+                from_json(hall_res.content))
+            if hall.binary_score == "yes":
+                ans_res = self.answer_grader.invoke(
+                    {"question": state["question"], "generation": out.answer})
+                ans = AnswerGrader.model_validate(from_json(ans_res.content))
+                if ans.binary_score == "yes":
+                    return {**state, "next_step": "final_answer", "generation": out.answer, 'generation_count': state.get("generation_count", 0) + 1}
+
+            return {**state, "next_step": "query_write", 'generation_count': state.get("generation_count", 0) + 1, "generation": out.answer}
+
+        return {**state, "next_step": "out_of_max_generation_count", 'generation_count': 0}
 
     def _grade_generation(self, state: GraphState) -> str:
-        hall = self.hallucination_grader.invoke({"documents": state.get(
-            "documents", []), "generation": state.get("generation", "")})
-        return 'useful'
-        # if hall.binary_score == "yes":
-        #     ans = self.answer_grader.invoke(
-        #         {"question": state["question"], "generation": state["generation"]})
-        #     return "useful" if ans.binary_score == "yes" else "not useful"
-        # return "not supported"
+        if state.get("final_answer") == "yes" or state.get("next_step") == "out_of_max_generation_count":
+            return "end"
+        elif state.get("final_answer") == "no":
+            return "not useful"
+        else:
+            return "not supported"
 
     def _step(self, state: GraphState) -> GraphState:
         pass
@@ -339,7 +375,7 @@ class RAGWorkflow:
         wf.add_conditional_edges(
             "generate",
             self._grade_generation,
-            {"useful": END, "not useful": "query_rewrite",
+            {"end": END, "not useful": "query_rewrite",
                 "not supported": "generate"}
         )
         return wf.compile()
@@ -353,7 +389,9 @@ class RAGWorkflow:
                 final_answer="no", thread=thread, first_chat=True)
             self.sessions["user_id"] = session
         thread = session.thread
-        for output in self.app.stream({"question": question}, thread, stream_mode="updates", debug=False):
+        for output in self.app.stream({"question": question}, thread, stream_mode="updates", debug=True):
             if output.get("next_step") == "final_answer":
+                import pdb
+                pdb.set_trace()
                 pprint(output)
                 break

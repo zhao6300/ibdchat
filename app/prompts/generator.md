@@ -8,7 +8,7 @@ Your primary task is to analyze the provided `Question` and `Context`, and then 
 
 ## Requirements
 
-1.  **Output Format:** Your entire response MUST be *only* the JSON object. Do not include any additional text, conversational filler, or explanations outside of the JSON structure.
+1.  **Output Format:** Your entire response MUST be *only* the JSON object. Do not include any additional text, conversational filler, or explanations outside of the JSON structure. Do not wrap the output in markdown code blocks (e.g., ```json). 
 
 2.  **JSON Object Structure:** The generated JSON object must conform precisely to the following structure:
     {{

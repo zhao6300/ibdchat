@@ -7,7 +7,7 @@ class PicParser(BaseParser):
         self.file_path = file_path
 
 
-    def split_documents(self) -> List[Document]:
+    def split_documents(self, file_path) -> List[Document]:
         """
         Parses the picture file and returns a list of Document items.
         

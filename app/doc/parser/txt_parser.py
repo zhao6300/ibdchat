@@ -1,21 +1,16 @@
-from .chunk import ChunkBase
+
 from .base_parser import BaseParser
 from typing import List, Literal, Optional, Dict
-
+from langchain_core.documents import BaseDocumentTransformer, Document
 from .utils import find_codec, get_text
 import re
-
-
-class TxtChunk(ChunkBase):
-    def __init__(self, text: str):
-        self.text = text
 
 
 class TxtParser(BaseParser):
     def __init__(self, file_path: str):
         pass
 
-    def split_documents(self) -> List[TxtChunk]:
+    def split_documents(self, file_path) -> List[Document]:
         """
         Parses the TXT file and returns a list of TxtChunk items.
 

@@ -7,7 +7,7 @@ class ExcelParser(BaseParser):
     def __init__(self, file_path: str):
         self.file_path = file_path
 
-    def split_documents(self) -> List[Document]:
+    def split_documents(self, file_path) -> List[Document]:
         """
         Parses the Excel file and returns a list of DataFrame items.
         

@@ -20,6 +20,8 @@ import uuid
 from app.models.chat_llm import get_llm
 from dotenv import load_dotenv, find_dotenv
 from pydantic_core import from_json
+from doc.parser import *
+
 
 load_dotenv(find_dotenv())
 
@@ -152,6 +154,8 @@ class DocumentVectorizer:
         for path in self.local_paths:
             if path.endswith('.docx'):
                 docs.extend(Docx2txtLoader(path).load())
+            elif path.endswith('.pdf'):
+                docs.extend(PdfParser(path).split_documents(path))
             else:
                 docs.extend(TextLoader(path).load())
         splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(

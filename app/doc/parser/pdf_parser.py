@@ -5,7 +5,7 @@ from langchain_core.documents import BaseDocumentTransformer, Document
 
 from langchain_community.document_loaders import PyPDFLoader
 class PdfParser(BaseParser):
-    def __init__(self, file_path: str):
+    def __init__(self):
         pass
 
     def split_documents(self, file_path) -> List[Document]:

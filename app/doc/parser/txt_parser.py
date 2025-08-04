@@ -7,7 +7,7 @@ import re
 
 
 class TxtParser(BaseParser):
-    def __init__(self, file_path: str):
+    def __init__(self):
         pass
 
     def split_documents(self, file_path) -> List[Document]:

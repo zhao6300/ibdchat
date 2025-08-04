@@ -5,8 +5,8 @@ from typing import List
 
 
 class PptxParser(BaseParser):
-    def __init__(self, file_path: str):
-        self.file_path = file_path
+    def __init__(self):
+        pass
 
     def split_documents(self, file_path) -> List[Document]:
         """

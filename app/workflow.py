@@ -20,7 +20,7 @@ import uuid
 from app.models.chat_llm import get_llm
 from dotenv import load_dotenv, find_dotenv
 from pydantic_core import from_json
-from doc.parser import *
+from .doc.parser import *
 
 
 load_dotenv(find_dotenv())

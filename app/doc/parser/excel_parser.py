@@ -1,16 +1,17 @@
 from .base_parser import BaseParser
 from langchain_core.documents import BaseDocumentTransformer, Document
 import pandas as pd
-from typing import List
+from typing import List, Optional
+
 
 class ExcelParser(BaseParser):
-    def __init__(self, file_path: str):
-        self.file_path = file_path
+    def __init__(self):
+        pass
 
     def split_documents(self, file_path) -> List[Document]:
         """
         Parses the Excel file and returns a list of DataFrame items.
-        
+
         Returns:
             List[pd.DataFrame]: A list of parsed DataFrames from the Excel file.
         """

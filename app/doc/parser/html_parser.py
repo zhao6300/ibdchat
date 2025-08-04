@@ -1,12 +1,12 @@
 
 from .base_parser import BaseParser
 from langchain_core.documents import BaseDocumentTransformer, Document
-from typing import List
+from typing import List, Optional
 
 
 class HtmlParser(BaseParser):
-    def __init__(self, url: str):
-        self.file_path = url
+    def __init__(self):
+        pass
 
     def split_documents(self, file_path) -> List[Document]:
         """

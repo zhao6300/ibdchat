@@ -1,8 +1,10 @@
 from langchain_core.documents import BaseDocumentTransformer, Document
+from typing import Optional, List
+
 
 class FileLoader:
-    def __init__(self, file_path: str):
-        self.file_path = file_path
+    def __init__(self):
+        pass
 
     def load_file(self) -> str:
         """

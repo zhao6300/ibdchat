@@ -1,12 +1,11 @@
-from .chunk import ChunkBase
 from .base_parser import BaseParser
 from typing import List, Literal, Optional, Dict
 from langchain_core.documents import BaseDocumentTransformer, Document
 
 
 class DocxParser(BaseParser):
-    def __init__(self, file_path: str):
-        self.file_path = file_path
+    def __init__(self):
+        pass
 
     def split_documents(self, file_path) -> List[Document]:
         """

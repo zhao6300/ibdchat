@@ -1,6 +1,6 @@
 from langchain_core.utils.function_calling import convert_to_openai_function
 from langchain.tools import BaseTool, StructuredTool, tool
-from langchain.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from langchain_community.utilities import GoogleSearchAPIWrapper
 import asyncio
 import pprint
@@ -16,7 +16,7 @@ import langchain_community.document_loaders.async_html
 from langchain_community.document_loaders import AsyncHtmlLoader
 from langchain_core.callbacks import CallbackManagerForToolRun
 from typing import Any, Optional, Type
-from langchain.agents import AgentType, initialize_agent, load_tools
+from langchain_community.agent_toolkits.load_tools import load_tools
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 import logging
 from langchain_community.tools.tavily_search import TavilySearchResults

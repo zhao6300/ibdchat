@@ -10,7 +10,7 @@ from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from pydantic import BaseModel, Field
 from langchain_community.document_loaders import TextLoader, Docx2txtLoader
-from langchain_chroma import Chroma
+
 from app.models import *
 import os
 from app.tools import *
@@ -21,7 +21,7 @@ from app.models.chat_llm import get_llm
 from dotenv import load_dotenv, find_dotenv
 from pydantic_core import from_json
 from .doc.parser import *
-
+from app.store import *
 
 load_dotenv(find_dotenv())
 
@@ -105,28 +105,6 @@ class GraphState(TypedDict):
 
 def format_docs(docs: List[Document]) -> str:
     return "\n\n".join(doc.page_content for doc in docs)
-
-
-class ChromaDB:
-    def __init__(self, collection_name: str = "test_db"):
-        self.collection_name = collection_name
-
-        model_type = os.getenv("EMBEDDING_MODEL_TYPE")
-        model_name = os.getenv("EMBEDDING_MODEL_NAME")
-        model_key = os.getenv("EMBEDDING_MODEL_API_KEY")
-        modal_base_url = os.getenv("EMBEDDING_MODEL_BASE_URL")
-        self.embedding = EmbeddingModel.get(model_type)(
-            model_key, model_name, modal_base_url)
-        self.db = Chroma(collection_name=collection_name,
-                         embedding_function=self.embedding)
-
-    def add_documents(self, documents: List[Document]):
-        """Add documents to the ChromaDB collection."""
-        return self.db.add_documents(documents)
-
-    def retrieve(self, query: str, k: int = 2) -> List[Document]:
-        """Retrieve documents based on a query."""
-        return self.db.similarity_search(query, k=k)
 
 
 class DocumentVectorizer:
@@ -303,7 +281,7 @@ class RAGWorkflow:
                 filtered.append(doc)
         return {**state, "thought": score.thought, "documents": filtered}
 
-    def _transform_query(self, state: GraphState) -> GraphState:
+    def _query_rewrite(self, state: GraphState) -> GraphState:
 
         out_res = self.question_rewriter.invoke(
             {"question": state["question"]})
@@ -323,7 +301,6 @@ class RAGWorkflow:
 
             out_res = self.rag_chain.invoke(
                 {"context": ctx, "question": state["question"]})
-            pprint(out_res.content)
             out = GenerateAnswer.model_validate(from_json(out_res.content))
 
             hall_res = self.hallucination_grader.invoke({"documents": state.get(
@@ -337,7 +314,7 @@ class RAGWorkflow:
                 if ans.binary_score == "yes":
                     return {**state, "thought": ans.thought,  "next_step": "final_answer", "generation": out.answer, 'generation_count': state.get("generation_count", 0) + 1}
 
-            return {**state, "thought": ans.thought, "next_step": "query_write", 'generation_count': state.get("generation_count", 0) + 1, "generation": out.answer}
+            return {**state, "thought": ans.thought, "next_step": "query_rewrite", 'generation_count': state.get("generation_count", 0) + 1, "generation": out.answer}
 
         return {**state, "next_step": "out_of_max_generation_count", 'generation_count': 0}
 
@@ -355,12 +332,12 @@ class RAGWorkflow:
     def _build_workflow(self):
         wf = StateGraph(GraphState)
         wf.add_node("planer", self._plan)
-        wf.add_node("query_analysis", self.query_analysis)
         wf.add_node("step", self._step)
+        wf.add_node("query_analysis", self.query_analysis)
         wf.add_node("web_search", self._web_search)
         wf.add_node("retrieve", self._retrieve)
         wf.add_node("grade_documents", self._grade_documents)
-        wf.add_node("query_rewrite", self._transform_query)
+        wf.add_node("query_rewrite", self._query_rewrite)
         wf.add_node("generate", self._generate)
         wf.add_edge(START, "query_analysis")
         wf.add_conditional_edges(

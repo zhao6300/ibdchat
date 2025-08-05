@@ -18,6 +18,7 @@ def main():
     #     workflow.run(question)
     # print(workflow.mermaid_code)
     workflow.run("总结投行智能打分系统方案的特点和优势")
+    # workflow.run("小鸡有几条腿？")
 
 
 if __name__ == "__main__":
